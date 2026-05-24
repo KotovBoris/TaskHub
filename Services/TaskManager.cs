@@ -29,11 +29,32 @@ public class TaskManager
         return task;
     }
 
-    /// <summary>Получить задачу по ID</summary>
+    /// <summary>Получить задачу по полному ID</summary>
     public TaskItem GetById(Guid id)
     {
         var task = _tasks.FirstOrDefault(t => t.Id == id);
         return task ?? throw new TaskNotFoundException(id);
+    }
+
+    /// <summary>Найти задачу по полному или короткому ID (префиксу)</summary>
+    public TaskItem ResolveId(string idStr)
+    {
+        // Сначала пробуем как полный GUID
+        if (Guid.TryParse(idStr, out var fullId))
+        {
+            return GetById(fullId);
+        }
+
+        // Ищем по префиксу
+        var prefix = idStr.ToLower();
+        var matches = _tasks.Where(t => t.Id.ToString().StartsWith(prefix)).ToList();
+
+        if (matches.Count == 0)
+            throw new TaskNotFoundException($"Задача с ID '{idStr}' не найдена");
+        if (matches.Count > 1)
+            throw new TaskNotFoundException($"ID '{idStr}' неоднозначен — найдено {matches.Count} задач, укажите больше символов");
+
+        return matches[0];
     }
 
     /// <summary>Редактировать задачу через делегат Action</summary>
